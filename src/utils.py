@@ -93,3 +93,7 @@ def vcf_to_maf(f, sep_scnd=";", info_elems=info_elems, chr_pre="chr",
 
             for i in range(n_alleles):
                 print_col(chrom, start, id_str, ref_allele, alts[i], afs[i])
+
+
+def get_range(pos, base_range=1e6, one_base=True):
+    return max(int(one_base), pos - base_range), pos + base_range
