@@ -16,7 +16,8 @@ def fit_genotypes_lasso(geno_mat, pheno_vec):
 
 
 def get_gene_cis_region(gene, G, coord_map, base_range, one_base):
-    _, pos, _ = coord_map[gene]
+    chrm, pos, _ = coord_map[gene]
     beg, end = utils.get_range(pos, base_range, one_base)
-    G0 = G.where((G.pos >= beg) & (G.pos < end), drop=True)
+    G0 = G.where((G.chrom == chrm) & (G.pos >= beg) & (G.pos < end) &
+                 (G.var(axis=0) != 0), drop=True)
     return G0
