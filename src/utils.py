@@ -1,3 +1,6 @@
+import scipy.sparse as sps
+
+
 # gets coordinates of all genes in GTF file, saving it onto a dictionary with
 # the gene_id as the key and coordinates
 def get_coords(f, sep_main="\t", sep_scnd=";"):
@@ -97,3 +100,18 @@ def vcf_to_maf(f, sep_scnd=";", info_elems=info_elems, chr_pre="chr",
 
 def get_range(pos, base_range=1e6, one_base=True):
     return max(int(one_base), pos - base_range), pos + base_range
+
+
+# return dictionary matching name to idx
+def names_to_idx(names):
+    out = {}
+    for idx, nme in enumerate(names):
+        out[nme] = idx
+    return out
+
+# takes a pandas_plink object and converts it to a
+def sparse_mat_init(G):
+    row_to_idx = names_to_idx(G.sample)
+    col_to_idx = names_to_idx(G.snp)
+    s_mat = sps.dok_matrix(G.shape, dtype=np.float32)
+    return s_mat, row_to_idx, col_to_idx
