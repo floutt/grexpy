@@ -34,7 +34,7 @@ def fit_all_genes(exp_mat, G, coord_map, fit_method, smat, row_to_idx,
 
     for gene in exp_mat.index:
         G0 = get_gene_cis_region(gene, G, coord_map, base_range, one_base)
-        model = fit_fn(G0.values, exp_mat.loc[gene])
+        model = fit_fn(G0.values, exp_mat.loc[gene], n_jobs=n_jobs)
         var_names = G0.snp.data[model.coef_ != 0]
         var_coef = model.coef_[model.coef_ != 0]
         for name, coef in zip(var_names, var_coef):
