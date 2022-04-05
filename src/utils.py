@@ -1,4 +1,5 @@
 import scipy.sparse as sps
+import numpy as np
 
 
 # gets coordinates of all genes in GTF file, saving it onto a dictionary with
@@ -109,9 +110,10 @@ def names_to_idx(names):
         out[nme] = idx
     return out
 
+
 # takes a pandas_plink object and converts it to a
-def sparse_mat_init(G):
-    row_to_idx = names_to_idx(G.sample)
-    col_to_idx = names_to_idx(G.snp)
-    s_mat = sps.dok_matrix(G.shape, dtype=np.float32)
+def sparse_mat_init(G, genes):
+    row_to_idx = names_to_idx(genes)
+    col_to_idx = names_to_idx(G.snp.data)
+    s_mat = sps.dok_matrix((len(genes), len(G.snp)), dtype=np.float32)
     return s_mat, row_to_idx, col_to_idx
