@@ -44,6 +44,11 @@ def fit_all_genes(exp_mat, G, coord_map, fit_method, smat, row_to_idx,
             smat[row_to_idx[gene], col_to_idx[name]] = coef
 
 
+def load_weight_matrix(filename):
+    with open(filename, "wb") as f:
+        return pickle.load(f)
+
+
 class WeightMatrix:
     def __init__(self, G, pheno, coord_map, fit_method, base_range=int(1e6),
                  one_base=True, n_jobs=1):
