@@ -45,7 +45,7 @@ def fit_all_genes(exp_mat, G, coord_map, fit_method, smat, row_to_idx,
 
 
 def load_weight_matrix(filename):
-    with open(filename, "wb") as f:
+    with open(filename, "rb") as f:
         return pickle.load(f)
 
 
