@@ -3,6 +3,7 @@ import pickle
 from sklearn.linear_model import ElasticNetCV, LassoCV
 import numpy as np
 import scipy.sparse as sps
+import pandas as pd
 
 
 def fit_genotypes_enet(geno_mat, pheno_vec, n_jobs=1):
@@ -58,6 +59,7 @@ class WeightMatrix:
         self._colnames = G.snp.data
         self._smat = sps.dok_matrix((len(pheno.index), len(G.snp)),
                                     dtype=np.float32)
+        self._r2 = []
         self._base_range = base_range
         self._one_base = one_base
         self._fit_genes(G, pheno, coord_map, fit_method, n_jobs=n_jobs)
@@ -81,12 +83,19 @@ class WeightMatrix:
             G0 = get_gene_cis_region(gene, G, coord_map, self._base_range,
                                      self._one_base)
             model = fit_fn(G0.values, pheno.loc[gene], n_jobs=n_jobs)
+            self._r2.append(model.score(G0.values, pheno.loc[gene]))
             var_names = G0.snp.data[model.coef_ != 0]
             var_coef = model.coef_[model.coef_ != 0]
             for name, coef in zip(var_names, var_coef):
-                self._smat[self._row_to_idx[gene], self._col_to_idx[name]] = coef
+                self._smat[self._row_to_idx[gene],
+                           self._col_to_idx[name]] = coef
 
-    def save_obj(self, outfile):
+    def predict(self, G):
+        grex_mat = (G.values.T @ self._smat).T
+        return(pd.DataFrame(grex_mat, index=self._rownames,
+                            columns=G.sample.data))
+
+    def save(self, outfile):
         self._smat = self._smat.tocsr()
         with open(outfile, "wb") as f:
             pickle.dump(self, f)
