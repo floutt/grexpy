@@ -55,7 +55,7 @@ class WeightMatrix:
                                     dtype=np.float32)
         self._base_range = base_range
         self._one_base = one_base
-        self._fit_genes(self, G, pheno, coord_map, fit_method, n_jobs=n_jobs)
+        self._fit_genes(G, pheno, coord_map, fit_method, n_jobs=n_jobs)
 
     def _names_to_idx(self, names):
         out = {}
