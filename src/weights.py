@@ -1,6 +1,8 @@
 import utils
 import pickle
 from sklearn.linear_model import ElasticNetCV, LassoCV
+import numpy as np
+import scipy.sparse as sps
 
 
 def fit_genotypes_enet(geno_mat, pheno_vec, n_jobs=1):
@@ -55,7 +57,7 @@ class WeightMatrix:
         self._one_base = one_base
         self._fit_genes(self, G, pheno, coord_map, fit_method, n_jobs=n_jobs)
 
-    def _names_to_idx(names):
+    def _names_to_idx(self, names):
         out = {}
         for idx, nme in enumerate(names):
             out[nme] = idx
@@ -79,7 +81,7 @@ class WeightMatrix:
             for name, coef in zip(var_names, var_coef):
                 self._smat[self._row_to_idx[gene], self._col_to_idx[name]] = coef
 
-    def save_obj(outfile):
+    def save_obj(self, outfile):
         self._smat = self._smat.tocsr()
         with open(outfile, "wb") as f:
             pickle.dump(self, f)
