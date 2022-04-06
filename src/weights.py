@@ -1,4 +1,5 @@
 import utils
+import pickle
 from sklearn.linear_model import ElasticNetCV, LassoCV
 
 
@@ -39,3 +40,46 @@ def fit_all_genes(exp_mat, G, coord_map, fit_method, smat, row_to_idx,
         var_coef = model.coef_[model.coef_ != 0]
         for name, coef in zip(var_names, var_coef):
             smat[row_to_idx[gene], col_to_idx[name]] = coef
+
+
+class WeightMatrix:
+    def __init__(self, G, pheno, coord_map, fit_method, base_range=int(1e6),
+                 one_base=True, n_jobs=1):
+        self._row_to_idx = self._names_to_idx(pheno.index)
+        self._col_to_idx = self._names_to_idx(G.snp.data)
+        self._rownames = pheno.index
+        self._colnames = G.snp.data
+        self._smat = sps.dok_matrix((len(pheno.index), len(G.snp)),
+                                    dtype=np.float32)
+        self._base_range = base_range
+        self._one_base = one_base
+        self._fit_genes(self, G, pheno, coord_map, fit_method, n_jobs=n_jobs)
+
+    def _names_to_idx(names):
+        out = {}
+        for idx, nme in enumerate(names):
+            out[nme] = idx
+        return out
+
+    def _fit_genes(self, G, pheno, coord_map, fit_method, n_jobs=1):
+        fit_fn = None
+        if fit_method == "enet":
+            fit_fn = fit_genotypes_enet
+        elif fit_method == "lasso":
+            fit_fn = fit_genotypes_lasso
+        else:
+            raise ValueError("fit_method must either be enet or lasso")
+
+        for gene in pheno.index:
+            G0 = get_gene_cis_region(gene, G, coord_map, self._base_range,
+                                     self._one_base)
+            model = fit_fn(G0.values, pheno.loc[gene], n_jobs=n_jobs)
+            var_names = G0.snp.data[model.coef_ != 0]
+            var_coef = model.coef_[model.coef_ != 0]
+            for name, coef in zip(var_names, var_coef):
+                self._smat[self._row_to_idx[gene], self._col_to_idx[name]] = coef
+
+    def save_obj(outfile):
+        self._smat = self._smat.tocsr()
+        with open(outfile, "wb") as f:
+            pickle.dump(self, f)
