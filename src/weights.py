@@ -91,7 +91,7 @@ class WeightMatrix:
                            self._col_to_idx[name]] = coef
 
     def predict(self, G):
-        grex_mat = (G.values.T @ self._smat).T
+        grex_mat = self._smat @ G.values.T
         return(pd.DataFrame(grex_mat, index=self._rownames,
                             columns=G.sample.data))
 
