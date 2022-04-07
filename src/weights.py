@@ -82,6 +82,10 @@ class WeightMatrix:
         for gene in pheno.index:
             G0 = get_gene_cis_region(gene, G, coord_map, self._base_range,
                                      self._one_base)
+            if G0.shape[1] == 0:
+                print("WARNING: no variants found for gene %s" % gene)
+                self._r2.append(0)
+                continue
             model = fit_fn(G0.values, pheno.loc[gene], n_jobs=n_jobs)
             self._r2.append(model.score(G0.values, pheno.loc[gene]))
             var_names = G0.snp.data[model.coef_ != 0]
