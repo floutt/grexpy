@@ -21,8 +21,7 @@ def fit_genotypes_lasso(geno_mat, pheno_vec, n_jobs=1):
 def get_gene_cis_region(gene, G, coord_map, base_range, one_base):
     chrm, pos, _ = coord_map[gene]
     beg, end = utils.get_range(pos, base_range, one_base)
-    G0 = G.where((G.chrom == chrm) & (G.pos >= beg) & (G.pos < end) &
-                 (G.var(axis=0) != 0) & np.invert(np.isnan(G.var(axis=0))),
+    G0 = G.where((G.chrom == chrm) & (G.pos >= beg) & (G.pos < end),
                  drop=True)
     return G0
 
@@ -54,6 +53,9 @@ def load_weight_matrix(filename):
 class WeightMatrix:
     def __init__(self, G, pheno, coord_map, fit_method, base_range=int(1e6),
                  one_base=True, n_jobs=1):
+        G = G.assign_coords(var_geno=("variant", G.values.var(axis=0)))
+        G = G.where(np.logical_and(np.invert(G.var_geno.isnull()),
+                                   G.var_geno != 0), drop=True)
         self._row_to_idx = self._names_to_idx(pheno.index)
         self._col_to_idx = self._names_to_idx(G.snp.data)
         self._rownames = pheno.index
