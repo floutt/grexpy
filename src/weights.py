@@ -135,7 +135,7 @@ class WeightMatrix:
         out_obj._r2 = [out_obj._r2[idx] for idx in row_idx]
         out_obj._row_to_idx = self._names_to_idx(out_obj._rownames)
         out_obj._col_to_idx = self._names_to_idx(out_obj._colnames)
-        out_obj._smat = self._smat[row_idx, col_idx]
+        out_obj._smat = self._smat[row_idx, :][:, col_idx]
         return out_obj
 
     def predict(self, G):
