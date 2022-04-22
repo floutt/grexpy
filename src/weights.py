@@ -1,6 +1,7 @@
 import utils
 import pickle
 from sklearn.linear_model import ElasticNetCV, LassoCV
+from math import nan
 import numpy as np
 import scipy.sparse as sps
 import pandas as pd
@@ -87,7 +88,7 @@ class WeightMatrix:
                                      self._one_base)
             if G0.shape[1] == 0:
                 print("WARNING: no variants found for gene %s" % gene)
-                self._r2.append(0)
+                self._r2.append(nan)
                 continue
             model = fit_fn(G0.values, pheno.loc[gene], n_jobs=n_jobs)
             self._r2.append(model.score(G0.values, pheno.loc[gene]))
@@ -96,6 +97,43 @@ class WeightMatrix:
             for name, coef in zip(var_names, var_coef):
                 self._smat[self._row_to_idx[gene],
                            self._col_to_idx[name]] = coef
+
+    def __getitem__(self, key):
+        out_obj = self.copy()
+        x, y = key
+        row_idx = []
+        col_idx = []
+        if isinstance(x, str):
+            x = [x]
+        if isinstance(y, str):
+            y = [y]
+
+        idx_error_msg = "Indices should be of type str or a list of strings"
+        for x0 in x:
+            try:
+                assert isinstance(x0, str)
+                row_idx.append(self._row_to_idx[x0])
+            except KeyError:
+                raise KeyError("Value %s not a row in WeightMatrix" % x0)
+            except AssertionError:
+                raise ValueError(idx_error_msg)
+
+        for y0 in y:
+            try:
+                assert isinstance(y0, str)
+                col_idx.append(self._col_to_idx[y0])
+            except KeyError:
+                raise KeyError("Value %s not a column in WeightMatrix" % y0)
+            except AssertionError:
+                raise ValueError(idx_error_msg)
+
+        out_obj._rownames = [out_obj._rownames[idx] for idx in row_idx]
+        out_obj._colnames = [out_obj._colnames[idx] for idx in col_idx]
+        out_obj._r2 = [out_obj._r2[idx] for idx in row_idx]
+        out_obj._row_to_idx = self._names_to_idx(out_obj._rownames)
+        out_obj._col_to_idx = self._names_to_idx(out_obj._colnames)
+        out_obj._smat = self._smat[row_idx, col_idx]
+        return out_obj
 
     def predict(self, G):
         grex_mat = self._smat @ G.values.T
