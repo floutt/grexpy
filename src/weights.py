@@ -128,6 +128,8 @@ class WeightMatrix:
             except AssertionError:
                 raise ValueError(idx_error_msg)
 
+        row_idx = np.array(row_idx)
+        col_idx = np.array(col_idx)
         out_obj._rownames = [out_obj._rownames[idx] for idx in row_idx]
         out_obj._colnames = [out_obj._colnames[idx] for idx in col_idx]
         out_obj._r2 = [out_obj._r2[idx] for idx in row_idx]
