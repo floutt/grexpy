@@ -5,6 +5,7 @@ from math import nan
 import numpy as np
 import scipy.sparse as sps
 import pandas as pd
+import copy
 
 
 def fit_genotypes_enet(geno_mat, pheno_vec, n_jobs=1):
@@ -99,7 +100,7 @@ class WeightMatrix:
                            self._col_to_idx[name]] = coef
 
     def __getitem__(self, key):
-        out_obj = self.copy()
+        out_obj = copy.copy(self)
         x, y = key
         row_idx = []
         col_idx = []
