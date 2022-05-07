@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+
+import grexpy.weights as wt
+import argparse
+import pandas as pd
+from pandas_plink import read_plink1_bin
+import numpy as np
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest='subparser')
+
+    calc = subparsers.add_parser("calc")
+    calc.add_argument("--pheno", required=True)
+    calc.add_argument("--geno", required=True)
+    calc.add_argument("--gtf", required=True)
+    calc.add_argument("--sep", default="\t")
+    calc.add_argument("--one_ref", type=bool, default=True)
+    calc.add_argument("--cis_window_size", type=int, default=int(1e6))
+    calc.add_argument("--method", default="enet")
+    calc.add_argument("--n_jobs", type=int, default=1)
+    calc.add_argument("--out", required=True)
+
+    if parser.subparser == "calc":
+        print("Processing gtf file...")
+        gtf_file = open(calc.gtf)
+        coord_map = wt.get_coords(gtf_file)
+
+        print("Reading phenotype file...")
+        pheno_df = pd.read_csv(calc.pheno, sep=calc.sep)
+        print("\t%i observations, %i samples" % pheno_df.shape)
+
+        print("Reading genotype file...")
+        geno_file = calc.geno
+        if geno_file.endswith((".fam", ".bed", ".bim")):
+            geno_file = geno_file[:-4]
+        G = read_plink1_bin(geno_file + ".bed", geno_file + ".bim",
+                            geno_file + ".fam", verbose=False)
+        print("\t%i samples, %i variants" % G.shape)
+
+        com_samps = list(set.intersection(set(G.sample.data), set(pheno_df)))
+        if len(com_samps) == 0:
+            raise Exception("No overlap between geno and pheno files")
+        print("%i samples in common between genotype and phenotype data." %
+              len(com_samps))
+
+        print("Filtering genotype and phenotype files...")
+        G = G[[x in com_samps for x in G.sample.data]]
+        genes_gtf = []
+        chr_avail = pd.unique(G.chrom)
+        for k, v in coord_map.items():
+            if (v in chr_avail) and (k in pheno_df.index):
+                genes_gtf.append(k)
+        pheno_df = pheno_df.loc[genes_gtf, G.sample.data]
+        print("%i observations, %i samples included" % pheno_df.shape)
+
+        incl_var = np.invert(np.any(np.logical_or(np.isnan(G.values),
+                                                  np.isinf(G.values)), axis=0))
+        print("Filtering out %i variants with missing or infinite data" %
+              np.sum(np.invert(incl_var)))
+        if np.sum(incl_var) == 0:
+            raise Exception("All variants have missing data!")
+        G = G.loc[:, incl_var]
+
+        outfile = calc.out
+        if not outfile.endswith(".pkl"):
+            outfile += ".pkl"
+
+        fit_mat = wt.WeightMatrix(G, pheno_df, coord_map, calc.method,
+                                  base_range=calc.cis_window_size,
+                                  one_base=calc.one_ref, n_jobs=8)
+
+        print("Saving weights to %s" % outfile)
+        fit_mat.save(outfile)
