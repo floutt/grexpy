@@ -22,13 +22,15 @@ if __name__ == '__main__':
     calc.add_argument("--n_jobs", type=int, default=1)
     calc.add_argument("--out", required=True)
 
-    if parser.subparser == "calc":
+    args = parser.parse_args()
+
+    if args.subparser == "calc":
         print("Processing gtf file...")
-        gtf_file = open(calc.gtf)
+        gtf_file = open(args.gtf)
         coord_map = wt.get_coords(gtf_file)
 
         print("Reading phenotype file...")
-        pheno_df = pd.read_csv(calc.pheno, sep=calc.sep)
+        pheno_df = pd.read_csv(args.pheno, sep=args.sep)
         print("\t%i observations, %i samples" % pheno_df.shape)
 
         print("Reading genotype file...")
@@ -63,13 +65,13 @@ if __name__ == '__main__':
             raise Exception("All variants have missing data!")
         G = G.loc[:, incl_var]
 
-        outfile = calc.out
+        outfile = args.out
         if not outfile.endswith(".pkl"):
             outfile += ".pkl"
 
-        fit_mat = wt.WeightMatrix(G, pheno_df, coord_map, calc.method,
-                                  base_range=calc.cis_window_size,
-                                  one_base=calc.one_ref, n_jobs=8)
+        fit_mat = wt.WeightMatrix(G, pheno_df, coord_map, args.method,
+                                  base_range=args.cis_window_size,
+                                  one_base=args.one_ref, n_jobs=8)
 
         print("Saving weights to %s" % outfile)
         fit_mat.save(outfile)
