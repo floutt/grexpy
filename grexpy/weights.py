@@ -1,4 +1,3 @@
-import utils
 import pickle
 from sklearn.linear_model import ElasticNetCV, LassoCV
 from math import nan
@@ -6,10 +5,65 @@ import numpy as np
 import scipy.sparse as sps
 import pandas as pd
 import copy
+import sys
+
+
+# progress bar implemented by StackOverflow user iambr here:
+# https://stackoverflow.com/questions/3160699/python-progress-bar
+def progressbar(it, prefix="", size=60, out=sys.stdout):
+    count = len(it)
+
+    def show(j):
+        x = int(size*j/count)
+        print("{}[{}{}] {}/{}".format(prefix, u"#"*x, "."*(size-x), j, count),
+              end='\r', file=out, flush=True)
+    show(0)
+    for i, item in enumerate(it):
+        yield item
+        show(i+1)
+    print("\n", flush=True, file=out)
+
+
+# gets coordinates of all genes in GTF file, saving it onto a dictionary with
+# the gene_id as the key and coordinates
+def get_coords(f, sep_main="\t", sep_scnd=";"):
+    CHR_POS = 0
+    START_POS = 3
+    END_POS = 4
+    META_POS = 8
+    out_map = {}
+    with f:
+        for line in f:
+            coords = []  # coordinates to be saved in [chr, start, end] format
+            # skip if comment
+            if (line[0] == "#"):
+                continue
+            cols = line.split(sep_main)
+            # skip if not gene
+            if (cols[2] != "gene"):
+                continue
+            coords.append(cols[CHR_POS])
+            coords.append(int(cols[START_POS]))
+            coords.append(int(cols[END_POS]))
+
+            gene_id = None
+            # get gene_id
+            for elem in cols[META_POS].split(sep_scnd):
+                kv = elem.split()
+                if kv[0] == "gene_id":
+                    gene_id = kv[1].strip("\"")  # remove quotation marks
+                    break
+            out_map[gene_id] = coords
+    return out_map
+
+
+def get_range(pos, base_range=1e6, one_base=True):
+    return max(int(one_base), pos - base_range), pos + base_range
 
 
 def fit_genotypes_enet(geno_mat, pheno_vec, n_jobs=1):
-    model = ElasticNetCV(cv=5, random_state=0, n_jobs=n_jobs, max_iter=10000)
+    model = ElasticNetCV(cv=5, random_state=0, n_jobs=n_jobs, max_iter=10000,
+                         l1_ratio=[.1, .5, .7, .9, .95, .99, 1])
     model.fit(geno_mat, pheno_vec)
     return model
 
@@ -22,29 +76,10 @@ def fit_genotypes_lasso(geno_mat, pheno_vec, n_jobs=1):
 
 def get_gene_cis_region(gene, G, coord_map, base_range, one_base):
     chrm, pos, _ = coord_map[gene]
-    beg, end = utils.get_range(pos, base_range, one_base)
+    beg, end = get_range(pos, base_range, one_base)
     G0 = G.where((G.chrom == chrm) & (G.pos >= beg) & (G.pos < end),
                  drop=True)
     return G0
-
-
-def fit_all_genes(exp_mat, G, coord_map, fit_method, smat, row_to_idx,
-                  col_to_idx, base_range=int(1e6), n_jobs=1, one_base=True):
-    fit_fn = None
-    if fit_method == "enet":
-        fit_fn = fit_genotypes_enet
-    elif fit_method == "lasso":
-        fit_fn = fit_genotypes_lasso
-    else:
-        raise ValueError("fit_method must either be enet or lasso")
-
-    for gene in exp_mat.index:
-        G0 = get_gene_cis_region(gene, G, coord_map, base_range, one_base)
-        model = fit_fn(G0.values, exp_mat.loc[gene], n_jobs=n_jobs)
-        var_names = G0.snp.data[model.coef_ != 0]
-        var_coef = model.coef_[model.coef_ != 0]
-        for name, coef in zip(var_names, var_coef):
-            smat[row_to_idx[gene], col_to_idx[name]] = coef
 
 
 def load_weight_matrix(filename):
@@ -84,7 +119,7 @@ class WeightMatrix:
         else:
             raise ValueError("fit_method must either be enet or lasso")
 
-        for gene in pheno.index:
+        for gene in progressbar(pheno.index, "Fitting model"):
             G0 = get_gene_cis_region(gene, G, coord_map, self._base_range,
                                      self._one_base)
             if G0.shape[1] == 0:
