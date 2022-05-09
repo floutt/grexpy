@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
         fit_mat = wt.WeightMatrix(G, pheno_df, coord_map, args.method,
                                   base_range=args.cis_window_size,
-                                  one_base=args.one_ref, n_jobs=8)
+                                  one_base=args.one_ref, n_jobs=args.n_jobs)
 
         print("Saving weights to %s" % outfile)
         fit_mat.save(outfile)
