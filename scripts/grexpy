@@ -60,6 +60,7 @@ if __name__ == '__main__':
             if (v in chr_avail) and (k in pheno_df.index):
                 genes_gtf.append(k)
         pheno_df = pheno_df.loc[genes_gtf, G.sample.data]
+        pheno_df = pheno_df.astype(float)
         print("%i observations, %i samples included" % pheno_df.shape)
 
         incl_var = np.invert(np.any(np.logical_or(np.isnan(G.values),
@@ -69,6 +70,7 @@ if __name__ == '__main__':
         if np.sum(incl_var) == 0:
             raise Exception("All variants have missing data!")
         G = G.loc[:, incl_var]
+        G.values = G.values.astype(float)
 
         outfile = args.out
         if not outfile.endswith(".pkl"):
