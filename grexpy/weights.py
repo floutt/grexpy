@@ -6,6 +6,7 @@ import scipy.sparse as sps
 import pandas as pd
 import copy
 import sys
+from warnings import warn
 
 
 # progress bar implemented by StackOverflow user iambr here:
@@ -123,7 +124,7 @@ class WeightMatrix:
             G0 = get_gene_cis_region(gene, G, coord_map, self._base_range,
                                      self._one_base)
             if G0.shape[1] == 0:
-                print("WARNING: no variants found for gene %s" % gene)
+                warn("no variants found for gene %s" % gene, Warning)
                 self._r2.append(nan)
                 continue
             model = fit_fn(G0.values, pheno.loc[gene], n_jobs=n_jobs)
