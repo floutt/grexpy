@@ -57,9 +57,9 @@ if __name__ == '__main__':
         genes_gtf = []
         chr_avail = pd.unique(G.chrom)
         for k, v in coord_map.items():
-            if (v in chr_avail) and (k in pheno_df.index):
+            if (v[0] in chr_avail) and (k in pheno_df.index):
                 genes_gtf.append(k)
-        pheno_df = pheno_df.loc[genes_gtf, G.sample.data]
+        pheno_df = pheno_df.loc[list(set.intersect(set(coord_map.keys()), set(pheno_df.index))), G.sample.data]
         pheno_df = pheno_df.astype(float)
         print("%i observations, %i samples included" % pheno_df.shape)
 
